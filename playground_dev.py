@@ -35,30 +35,15 @@ images = {
     "lucci":"lucci.jpg",
     "pizza":"pizza.gif",
     "toad":"toad.gif",
-    "lego":"lego_logo.gif",
+    "baby":"baby.gif",
     "trex":"trex.gif",
     'yoshi':'yoshi2.gif',
-    'piano':'piano.gif',
-    "turkey-fly": "turkey-fly.gif",
-    "turkey-run": "turkey-run.gif",
-    "turkey-plate": "turkey-plate.jpg",
-    "christmas-tree-snow": "christmas-tree-snow.gif",
-    "elf-dance": "elf-dance.gif",
-    "santa-dance": "santa-dance.gif"
+    'piano':'piano.gif'
 }
-
-christmas_images_array = [
-        "christmas-tree-snow",
-        "elf-dance",
-        "santa-dance"
-        ]
-
 fn = "logo"
 last_fn = 'logo'
 sched_on = True
 cycle_on = True
-turkey_time_on = False
-christmas_time_on = False
 
 def print_header():
     os.system("clear")
@@ -67,9 +52,8 @@ def print_header():
     print('Schedule: on' if sched_on else 'Schedule: off')
     print('Displaying: ' + fn)
     print('Cycle: ' + ('on' if cycle_on else 'off'))
-    print('Christmas: ' + ('on' if christmas_time_on else 'off'))
     print("1-logo 2-thumbs up 3-meeting 4-onair 5-lucci 6-torch"
-            +"\n7-pizza 8-kirby 9-toad 10-lego 11-trex 12-yoshi 13-piano 17-christmas")
+            +"\n7-pizza 8-kirby 9-toad 10-baby 11-trex 12-yoshi 13-piano")
     print('s-toggle scheduler c-toggle cycle')    
 
 def getTheImageName(key):
@@ -92,31 +76,14 @@ def getTheImageName(key):
     if key == '9':
         return 'toad'
     if key == '10':
-        return 'lego'
+        return 'baby'
     if key == '11':
         return 'trex'
     if key == '12':
         return 'yoshi'
     if key == '13':
         return 'piano'
-    if key == '14':
-        return 'turkey-fly'
-    if key == '15':
-        return 'turkey-plate'
-    if key == '16':
-        return 'turkey-run'
-    if key == '17':
-        return 'christmas-tree-snow'
-    if key == '18':
-        return 'elf-dance'
-    if key == '19':
-        return 'santa-dance'
     return "logo"
-
-def getChristmasImage():
-    num = (datetime.datetime.now().time().minute // 20)
-    print(num)
-    return christmas_images_array[num]
 
 class KeyboardThread(threading.Thread):
     def __init__(self, input_cbk = None, name='keyboard-input-thread'):
@@ -143,10 +110,6 @@ def is_cycle_time(cycle):
     if 9 < hour and hour < 23:
         return True
     return False
-
-def is_turkey_time():
-    num = (datetime.datetime.now().time().hour % 3) + 14
-    return
 
 def showImage(img):
     global duration
@@ -178,12 +141,6 @@ try:
             elif value == 'c':
                 cycle_on = not cycle_on
                 print_header()
-            elif value == 't':
-                turkey_time_on = not turkey_time_on
-                print_header()
-            elif value == 'h':
-                christmas_time_on = not christmas_time_on
-                print_header()
             else:
                 cycle_on = False
                 fn = getTheImageName(value)
@@ -197,13 +154,6 @@ try:
             elif is_cycle_time(cycle_on):
                 num = (datetime.datetime.now().time().hour % 5) + 8
                 fn = getTheImageName(str(num))
-                showImage(fn)
-            elif turkey_time_on:
-                num = (datetime.datetime.now().time().hour % 3) + 14
-                fn = getTheImageName(str(num))
-                showImage(fn)
-            elif christmas_time_on:
-                fn = getChristmasImage()
                 showImage(fn)
             else:
                 showImage(fn)
