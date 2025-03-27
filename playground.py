@@ -18,6 +18,7 @@ options.hardware_mapping = 'adafruit-hat-pwm'  # If you have an Adafruit HAT: 'a
 # options.pwm_bits = 1
 options.drop_privileges = False
 
+<<<<<<< Updated upstream
 #Globals
 image_file_path = "/home/pi/sign/assets/"
 matrix = RGBMatrix(options = options)
@@ -152,6 +153,41 @@ def showImage(img):
     global duration
     global image
     image = Image.open(image_file_path + images.get(img,"logo.png"))    
+=======
+# Define paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+themes_dir = os.path.join(BASE_DIR, "themes")
+settings_file = os.path.join(BASE_DIR, "settings.json")
+
+matrix = RGBMatrix(options=options)
+
+
+def load_settings():
+    """Load settings from JSON file."""
+    try:
+        with open(settings_file, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"mode": "all", "theme": None, "duration": 60, "sleep_enable": False, "sleep_start": "19:00:00", "sleep_end": "06:00:00"}
+
+
+def get_theme_images(theme):
+    """Get all image files in the selected theme folder."""
+    theme_path = os.path.join(themes_dir, theme)
+    if not os.path.isdir(theme_path):
+        return []
+
+    return [
+        os.path.join(theme_path, f)
+        for f in os.listdir(theme_path)
+        if f.lower().endswith((".png", ".jpg", ".gif"))
+    ]
+
+
+def show_image(image_path, duration):
+    """Display an image or animated GIF on the LED matrix."""
+    image = Image.open(image_path)
+>>>>>>> Stashed changes
     image.thumbnail((matrix.width, matrix.height), Image.ANTIALIAS)
     duration = image.info.get("duration", 0) / 1000.0
     if duration == 0:
@@ -166,6 +202,7 @@ def showImage(img):
 try:
     print_header()
     while True:
+<<<<<<< Updated upstream
         inp = select.select([sys.stdin],[],[],0)[0]
         if inp:
             value = sys.stdin.readline().rstrip()
@@ -209,3 +246,23 @@ try:
                 showImage(fn)
 except KeyboardInterrupt:
     sys.exit(0)
+=======
+        settings = load_settings()
+        mode = settings.get("mode", "all")
+        theme = settings.get("theme", None)
+        duration = settings.get("duration", 60)
+        sleep_enable = settings.get("sleep_enable", False)
+        sleep_start = settings.get("sleep_start", "19:00:00")
+        sleep_end = settings.get("sleep_end", "06:00:00")
+
+        if theme:
+            images = get_theme_images(theme)
+            if images:
+                random.shuffle(images)  # Shuffle for variety
+                for img in images:
+                    show_image(img, duration)
+        else:
+            show_image(os.path.join(BASE_DIR, "all", "logo.png"), duration)
+
+        time.sleep(0.1)  # Check for updates every 100ms
+>>>>>>> Stashed changes
