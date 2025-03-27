@@ -17,7 +17,7 @@ options.drop_privileges = False
 # Define paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 themes_dir = os.path.join(BASE_DIR, "themes")
-assets_dir = os.path.join(BASE_DIR, "assets")
+assets_dir = os.path.join(BASE_DIR, "themes/all")
 settings_file = os.path.join(BASE_DIR, "settings.json")
 
 matrix = RGBMatrix(options=options)
