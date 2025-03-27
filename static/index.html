@@ -3,68 +3,97 @@
 <head>
     <title>LED Matrix Control</title>
     <script>
-        function setTheme(theme) {
-            fetch("/set_theme", {
+        async function loadSettings() {
+            const res = await fetch("/get_settings");
+            const settings = await res.json();
+
+            document.getElementById("themeSelect").value = settings.theme || "";
+            document.getElementById("duration").value = settings.duration || 2;
+            document.getElementById("sleepEnable").checked = settings.sleep_enable || false;
+            document.getElementById("sleepStart").value = settings.sleep_range?.start || "00:00";
+            document.getElementById("sleepEnd").value = settings.sleep_range?.end || "09:00";
+        }
+
+        async function saveSettings() {
+            const payload = {
+                theme: document.getElementById("themeSelect").value,
+                duration: parseFloat(document.getElementById("duration").value),
+                sleep_enable: document.getElementById("sleepEnable").checked,
+                sleep_range: {
+                    start: document.getElementById("sleepStart").value,
+                    end: document.getElementById("sleepEnd").value
+                },
+                mode: "all"
+            };
+
+            await fetch("/set_settings", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ "theme": theme })
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+
+            alert("Settings saved!");
+        }
+
+        async function loadThemes() {
+            const res = await fetch("/get_themes");
+            const data = await res.json();
+            const select = document.getElementById("themeSelect");
+            select.innerHTML = "";
+
+            data.themes.forEach(theme => {
+                const option = document.createElement("option");
+                option.value = theme;
+                option.text = theme;
+                select.appendChild(option);
             });
         }
 
-        function setDuration() {
-            let duration = document.getElementById("duration").value;
-            fetch("/set_duration", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ "duration": parseFloat(duration) })
-            });
-        }
-
-        function uploadImage() {
-            let formData = new FormData();
-            let fileInput = document.getElementById("fileInput");
-            let theme = document.getElementById("themeSelect").value;
+        async function uploadImage() {
+            const formData = new FormData();
+            const fileInput = document.getElementById("fileInput");
+            const theme = document.getElementById("themeSelect").value;
 
             formData.append("file", fileInput.files[0]);
             formData.append("theme", theme);
 
-            fetch("/upload_image", {
+            const res = await fetch("/upload_image", {
                 method: "POST",
                 body: formData
-            }).then(res => res.json())
-              .then(data => alert("Uploaded: " + data.filename));
+            });
+
+            const data = await res.json();
+            alert("Uploaded: " + data.filename);
         }
 
-        function loadThemes() {
-            fetch("/get_themes")
-                .then(res => res.json())
-                .then(data => {
-                    let select = document.getElementById("themeSelect");
-                    select.innerHTML = "";
-                    data.themes.forEach(theme => {
-                        let option = document.createElement("option");
-                        option.value = theme;
-                        option.text = theme;
-                        select.appendChild(option);
-                    });
-                });
-        }
-
-        window.onload = loadThemes;
+        window.onload = async () => {
+            await loadThemes();
+            await loadSettings();
+        };
     </script>
 </head>
 <body>
     <h1>LED Matrix Control</h1>
 
-    <label>Image Duration (seconds):</label>
-    <input type="number" id="duration" value="2">
-    <button onclick="setDuration()">Set Duration</button>
+    <h2>Display Settings</h2>
+    <label>Theme:</label>
+    <select id="themeSelect"></select><br><br>
 
-    <h2>Select Theme</h2>
-    <select id="themeSelect"></select>
-    <button onclick="setTheme(document.getElementById('themeSelect').value)">Set Theme</button>
+    <label>Image Duration (sec):</label>
+    <input type="number" id="duration" value="2"><br><br>
 
-    <h2>Upload Image to Theme</h2>
+    <label>Enable Sleep Mode:</label>
+    <input type="checkbox" id="sleepEnable"><br><br>
+
+    <label>Sleep Start (HH:MM):</label>
+    <input type="time" id="sleepStart" value="00:00"><br>
+
+    <label>Sleep End (HH:MM):</label>
+    <input type="time" id="sleepEnd" value="09:00"><br><br>
+
+    <button onclick="saveSettings()">💾 Save Settings</button>
+
+    <h2>Upload Image</h2>
     <input type="file" id="fileInput">
     <button onclick="uploadImage()">Upload</button>
 </body>

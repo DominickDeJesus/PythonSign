@@ -3,8 +3,8 @@ import os
 import json
 import random
 import datetime
-from rgbmatrix import RGBMatrix, RGBMatrixOptions
-from PIL import Image, ImageSequence
+from rgbmatrix import RGBMatrix, RGBMatrixOptions # type: ignore
+from PIL import Image, ImageSequence # type: ignore
 
 # Configuration for the matrix
 options = RGBMatrixOptions()

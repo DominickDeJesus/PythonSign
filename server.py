@@ -59,6 +59,18 @@ def get_themes():
     themes = [d for d in os.listdir(themes_dir) if os.path.isdir(os.path.join(themes_dir, d))]
     return jsonify({"themes": themes})
 
+
+@app.route('/get_settings', methods=['GET'])
+def get_settings():
+    return jsonify(load_settings())
+
+@app.route('/set_settings', methods=['POST'])
+def set_settings():
+    data = request.json
+    save_settings(data)
+    return jsonify({"status": "success", "settings": data})
+
+
 @app.route('/')
 def index():
     return send_from_directory(BASE_DIR, "static/index.html")
