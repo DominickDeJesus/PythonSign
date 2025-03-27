@@ -20,6 +20,19 @@ def load_settings():
             return json.load(f)
     except FileNotFoundError:
         return {"mode": "logo", "theme": None, "duration": 2}
+    
+@app.route('/themes/<theme>/<filename>')
+def serve_theme_image(theme, filename):
+    return send_from_directory(os.path.join(themes_dir, theme), filename)
+
+@app.route('/get_theme_images/<theme>')
+def get_theme_images(theme):
+    theme_path = os.path.join(themes_dir, theme)
+    if not os.path.isdir(theme_path):
+        return jsonify({"images": []})
+
+    files = [f for f in os.listdir(theme_path) if f.lower().endswith(('.png', '.jpg', '.gif'))]
+    return jsonify({"images": files})
 
 @app.route('/set_theme', methods=['POST'])
 def set_theme():

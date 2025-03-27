@@ -8,6 +8,8 @@
 			rel="stylesheet"
 		/>
 		<script>
+			let selectedStaticImage = null;
+
 			async function loadSettings() {
 				const res = await fetch("/get_settings");
 				const settings = await res.json();
@@ -20,6 +22,9 @@
 					settings.sleep_range?.start || "00:00";
 				document.getElementById("sleepEnd").value =
 					settings.sleep_range?.end || "09:00";
+
+				selectedStaticImage = settings.static_image || null;
+				loadThemePreviews(settings.theme);
 			}
 
 			async function saveSettings() {
@@ -32,6 +37,7 @@
 						end: document.getElementById("sleepEnd").value,
 					},
 					mode: "all",
+					static_image: selectedStaticImage,
 				};
 
 				await fetch("/set_settings", {
@@ -49,26 +55,41 @@
 				const res = await fetch("/get_themes");
 				const data = await res.json();
 
-				const selects = [
-					document.getElementById("themeSelect"),
-					document.getElementById("themeSelectUpload"),
-				];
+				const mainThemeSelect = document.getElementById("themeSelect");
+				const uploadThemeSelect = document.getElementById("themeSelectUpload");
 
-				selects.forEach((select) => {
-					select.innerHTML = `<option value="">-- Select a Theme --</option>`;
-					data.themes.forEach((theme) => {
-						const option = document.createElement("option");
-						option.value = theme;
-						option.text = theme;
-						select.appendChild(option);
-					});
-
-					// Add "Create New Theme" option at the end
-					const createNewOption = document.createElement("option");
-					createNewOption.value = "__new__";
-					createNewOption.text = "➕ Create New Theme...";
-					select.appendChild(createNewOption);
+				mainThemeSelect.innerHTML = `<option value="">-- Select a Theme --</option>`;
+				data.themes.forEach((theme) => {
+					const option = document.createElement("option");
+					option.value = theme;
+					option.text = theme;
+					mainThemeSelect.appendChild(option);
 				});
+
+				uploadThemeSelect.innerHTML = `<option value="">-- Select a Theme --</option>`;
+				data.themes.forEach((theme) => {
+					const option = document.createElement("option");
+					option.value = theme;
+					option.text = theme;
+					uploadThemeSelect.appendChild(option);
+				});
+
+				const createNewOption = document.createElement("option");
+				createNewOption.value = "__new__";
+				createNewOption.text = "➕ Create New Theme...";
+				uploadThemeSelect.appendChild(createNewOption);
+			}
+
+			function toggleNewThemeInput() {
+				const themeSelect = document.getElementById("themeSelectUpload");
+				const newThemeWrapper = document.getElementById("newThemeWrapper");
+
+				if (themeSelect.value === "__new__") {
+					newThemeWrapper.classList.remove("d-none");
+				} else {
+					newThemeWrapper.classList.add("d-none");
+					document.getElementById("newThemeName").value = "";
+				}
 			}
 
 			async function uploadImage() {
@@ -108,16 +129,43 @@
 				await loadThemes();
 			}
 
-			function toggleNewThemeInput() {
-				const themeSelect = document.getElementById("themeSelectUpload");
-				const newThemeWrapper = document.getElementById("newThemeWrapper");
+			async function loadThemePreviews(theme) {
+				const container = document.getElementById("imagePreviewGrid");
+				container.innerHTML = "";
+				selectedStaticImage = null;
 
-				if (themeSelect.value === "__new__") {
-					newThemeWrapper.classList.remove("d-none");
-				} else {
-					newThemeWrapper.classList.add("d-none");
-					document.getElementById("newThemeName").value = "";
-				}
+				if (!theme) return;
+
+				const res = await fetch(`/get_theme_images/${theme}`);
+				const data = await res.json();
+
+				data.images.forEach((filename) => {
+					const url = `/themes/${theme}/${filename}`;
+
+					const col = document.createElement("div");
+					col.className = "col-3";
+
+					const img = document.createElement("img");
+					img.src = url;
+					img.alt = filename;
+					img.className = "img-thumbnail";
+					img.style.cursor = "pointer";
+
+					if (filename === selectedStaticImage) {
+						img.classList.add("border-primary", "border", "border-3");
+					}
+
+					img.onclick = () => {
+						selectedStaticImage = filename;
+						document.querySelectorAll("#imagePreviewGrid img").forEach((i) => {
+							i.classList.remove("border-primary", "border", "border-3");
+						});
+						img.classList.add("border-primary", "border", "border-3");
+					};
+
+					col.appendChild(img);
+					container.appendChild(col);
+				});
 			}
 
 			window.onload = async () => {
@@ -141,6 +189,11 @@
 						<label class="form-label">Theme</label>
 						<select id="themeSelect" class="form-select"></select>
 					</div>
+					<div class="mb-3">
+						<label class="form-label">Static Image (optional)</label>
+						<div id="imagePreviewGrid" class="row g-2"></div>
+					</div>
+
 					<div class="mb-3">
 						<label class="form-label">Image Duration (seconds)</label>
 						<input

@@ -32,6 +32,7 @@ def load_settings():
             "theme": None, 
             "duration": 2,
             "sleep_enable": True, 
+            "static_image": None,
             "sleep_range": {"start": "00:00", "end": "09:00"}
         }
 
@@ -83,6 +84,7 @@ if __name__ == "__main__":
         duration = settings.get("duration", 60)
         sleep_enable = settings.get("sleep_enable", True)
         sleep_range = settings.get("sleep_range", {"start": "00:00", "end": "09:00"})
+        static_image = settings.get("static_image")
 
         if is_sleep_time(sleep_enable, sleep_range):
             images = get_theme_images('sleep')
@@ -90,6 +92,11 @@ if __name__ == "__main__":
                 random.shuffle(images)
                 for img in images:
                     show_image(img, duration)
+        elif static_image and theme: # If a static image is selected, show it only
+            image_path = os.path.join(themes_dir, theme, static_image)
+            if os.path.exists(image_path):
+                show_image(image_path, duration)
+            continue
         elif theme:
             images = get_theme_images(theme)
             if images:
