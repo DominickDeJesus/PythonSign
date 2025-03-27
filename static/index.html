@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LED Matrix Control</title>
+    <script>
+        function setTheme(theme) {
+            fetch("/set_theme", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ "theme": theme })
+            });
+        }
+
+        function setDuration() {
+            let duration = document.getElementById("duration").value;
+            fetch("/set_duration", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ "duration": parseFloat(duration) })
+            });
+        }
+
+        function uploadImage() {
+            let formData = new FormData();
+            let fileInput = document.getElementById("fileInput");
+            let theme = document.getElementById("themeSelect").value;
+
+            formData.append("file", fileInput.files[0]);
+            formData.append("theme", theme);
+
+            fetch("/upload_image", {
+                method: "POST",
+                body: formData
+            }).then(res => res.json())
+              .then(data => alert("Uploaded: " + data.filename));
+        }
+
+        function loadThemes() {
+            fetch("/get_themes")
+                .then(res => res.json())
+                .then(data => {
+                    let select = document.getElementById("themeSelect");
+                    select.innerHTML = "";
+                    data.themes.forEach(theme => {
+                        let option = document.createElement("option");
+                        option.value = theme;
+                        option.text = theme;
+                        select.appendChild(option);
+                    });
+                });
+        }
+
+        window.onload = loadThemes;
+    </script>
+</head>
+<body>
+    <h1>LED Matrix Control</h1>
+
+    <label>Image Duration (seconds):</label>
+    <input type="number" id="duration" value="2">
+    <button onclick="setDuration()">Set Duration</button>
+
+    <h2>Select Theme</h2>
+    <select id="themeSelect"></select>
+    <button onclick="setTheme(document.getElementById('themeSelect').value)">Set Theme</button>
+
+    <h2>Upload Image to Theme</h2>
+    <input type="file" id="fileInput">
+    <button onclick="uploadImage()">Upload</button>
+</body>
+</html>
