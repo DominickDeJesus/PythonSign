@@ -41,11 +41,15 @@ def set_duration():
 
 @app.route('/upload_image', methods=['POST'])
 def upload_image():
-    if 'file' not in request.files or 'theme' not in request.form:
-        return jsonify({"error": "Missing file or theme"}), 400
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
 
     file = request.files['file']
-    theme = request.form['theme']
+    theme = request.form.get('theme') or request.form.get('new_theme')
+
+    if not theme:
+        return jsonify({"error": "No theme provided"}), 400
+
     theme_path = os.path.join(themes_dir, theme)
     os.makedirs(theme_path, exist_ok=True)
 
@@ -53,6 +57,7 @@ def upload_image():
     file.save(file_path)
 
     return jsonify({"status": "success", "filename": file.filename, "theme": theme})
+
 
 @app.route('/get_themes', methods=['GET'])
 def get_themes():
