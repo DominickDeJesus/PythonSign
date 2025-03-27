@@ -30,7 +30,8 @@ def load_settings():
         return {
             "mode": "logo", 
             "theme": None, 
-            "duration": 2, 
+            "duration": 2,
+            "sleep_enable": True, 
             "sleep_range": {"start": "00:00", "end": "09:00"}
         }
 
@@ -80,7 +81,7 @@ if __name__ == "__main__":
         mode = settings.get("mode", "all")
         theme = settings.get("theme", None)
         duration = settings.get("duration", 60)
-        sleep_enable = settings.get("sleep_enable", False)
+        sleep_enable = settings.get("sleep_enable", True)
         sleep_range = settings.get("sleep_range", {"start": "00:00", "end": "09:00"})
 
         if is_sleep_time(sleep_enable, sleep_range):
