@@ -3,6 +3,9 @@ import time
 import json
 import random
 import datetime
+from threading import Thread
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 from rgbmatrix import RGBMatrix, RGBMatrixOptions
 from PIL import Image, ImageSequence
 
@@ -21,7 +24,9 @@ themes_dir = os.path.join(BASE_DIR, "themes")
 assets_dir = os.path.join(BASE_DIR, "assets")
 settings_file = os.path.join(BASE_DIR, "settings.json")
 
-# --- Load Settings ---
+# --- Shared settings (global var updated by the watchdog) ---
+current_settings = {}
+
 def load_settings():
     try:
         with open(settings_file, "r") as f:
@@ -37,7 +42,23 @@ def load_settings():
             "static_image": None
         }
 
-# --- Check sleep time ---
+# --- Watchdog handler ---
+class SettingsChangeHandler(FileSystemEventHandler):
+    def on_modified(self, event):
+        if event.src_path.endswith("settings.json"):
+            global current_settings
+            current_settings = load_settings()
+            print(f"[WATCHDOG] settings.json reloaded at {datetime.datetime.now()}")
+
+def start_settings_watcher():
+    observer = Observer()
+    event_handler = SettingsChangeHandler()
+    observer.schedule(event_handler, path=BASE_DIR, recursive=False)
+    observer.start()
+    print("[WATCHDOG] Monitoring settings.json for changes")
+    return observer
+
+# --- Sleep time check ---
 def is_sleep_time(enabled, sleep_range):
     if not enabled:
         return False
@@ -55,7 +76,7 @@ def is_sleep_time(enabled, sleep_range):
     else:
         return now >= start or now < end
 
-# --- Load images from theme folder ---
+# --- Load images from theme ---
 def get_theme_images(theme):
     theme_path = os.path.join(themes_dir, theme)
     if not os.path.isdir(theme_path):
@@ -66,7 +87,7 @@ def get_theme_images(theme):
         if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))
     ]
 
-# --- Display image or animated gif ---
+# --- Display image ---
 def show_image(image_path, duration):
     try:
         image = Image.open(image_path)
@@ -83,58 +104,59 @@ def show_image(image_path, duration):
     except Exception as e:
         print(f"[ERROR] Failed to show image {image_path}: {e}")
 
-# --- Main loop ---
+# --- Main ---
 if __name__ == "__main__":
-    print("🟢 LED Controller started")
+    print("🟢 LED Controller started with Watchdog")
+    current_settings = load_settings()
 
-    while True:
-        settings = load_settings()
+    observer = start_settings_watcher()
 
-        theme = settings.get("theme")
-        duration = settings.get("duration", 2)
-        sleep_enabled = settings.get("sleep_enable", False)
-        sleep_range = settings.get("sleep_range", {"start": "00:00", "end": "09:00"})
-        static_image = settings.get("static_image")
+    try:
+        while True:
+            settings = current_settings  # Read from global shared settings
 
-        # --- Sleep Mode ---
-        if is_sleep_time(sleep_enabled, sleep_range):
-            sleep_images = get_theme_images("sleep")
-            if sleep_images:
-                print("[MODE] Sleep Mode")
-                random.shuffle(sleep_images)
-                for img in sleep_images:
-                    show_image(img, duration)
-            else:
-                print("[MODE] Sleep Mode - fallback to logo")
-                show_image(os.path.join(assets_dir, "logo.png"), duration)
-            time.sleep(0.1)
-            continue
+            theme = settings.get("theme")
+            duration = settings.get("duration", 2)
+            sleep_enabled = settings.get("sleep_enable", False)
+            sleep_range = settings.get("sleep_range", {"start": "00:00", "end": "09:00"})
+            static_image = settings.get("static_image")
 
-        # --- Static Image Mode ---
-        if static_image and theme:
-            image_path = os.path.join(themes_dir, theme, static_image)
-            if os.path.exists(image_path):
-                print(f"[MODE] Static Image: {static_image} from {theme}")
-                show_image(image_path, duration)
-                time.sleep(0.1)
+            # --- Sleep Mode ---
+            if is_sleep_time(sleep_enabled, sleep_range):
+                sleep_images = get_theme_images("sleep")
+                if sleep_images:
+                    print("[MODE] Sleep Mode")
+                    random.shuffle(sleep_images)
+                    for img in sleep_images:
+                        show_image(img, duration)
+                else:
+                    print("[MODE] Sleep fallback → logo")
+                    show_image(os.path.join(assets_dir, "logo.png"), duration)
                 continue
-            else:
-                print(f"[WARN] Static image not found: {image_path}")
 
-        # --- Cycle Theme Images ---
-        if theme:
-            images = get_theme_images(theme)
-            if images:
-                print(f"[MODE] Cycling Theme: {theme} with {len(images)} images")
-                random.shuffle(images)
-                for img in images:
-                    show_image(img, duration)
-                continue
-            else:
-                print(f"[WARN] No images found in theme: {theme}")
+            # --- Static Image ---
+            if static_image and theme:
+                image_path = os.path.join(themes_dir, theme, static_image)
+                if os.path.exists(image_path):
+                    print(f"[MODE] Static Image: {static_image}")
+                    show_image(image_path, duration)
+                    continue
 
-        # --- Fallback: Logo ---
-        print("[MODE] Default logo")
-        logo_path = os.path.join(assets_dir, "logo.png")
-        show_image(logo_path, duration)
-        time.sleep(0.1)
+            # --- Theme Cycle ---
+            if theme:
+                images = get_theme_images(theme)
+                if images:
+                    print(f"[MODE] Cycling Theme: {theme} ({len(images)} images)")
+                    random.shuffle(images)
+                    for img in images:
+                        show_image(img, duration)
+                    continue
+
+            # --- Default fallback ---
+            print("[MODE] Default → logo")
+            show_image(os.path.join(assets_dir, "logo.png"), duration)
+
+    except KeyboardInterrupt:
+        print("\n🛑 Shutting down LED controller")
+        observer.stop()
+        observer.join()
