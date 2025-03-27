@@ -74,12 +74,14 @@
     </script>
 </head>
 <body>
+    <div class="container">
+        <!-- Content here -->
     <h1>LED Matrix Control</h1>
 
     <h2>Display Settings</h2>
     <label>Theme:</label>
-    <select id="themeSelect"></select><br><br>
-
+    <select id="themeSelect" class="form-select" aria-label="Theme selector"></select>
+    
     <label>Image Duration (sec):</label>
     <input type="number" id="duration" value="2"><br><br>
 
@@ -97,6 +99,8 @@
     <h2>Upload Image</h2>
     <input type="file" id="fileInput">
     <button onclick="uploadImage()">Upload</button>
+</div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
