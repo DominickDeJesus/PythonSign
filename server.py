@@ -61,7 +61,7 @@ def get_themes():
 
 @app.route('/')
 def index():
-    return send_from_directory(BASE_DIR, "index.html")
+    return send_from_directory(BASE_DIR, "static/index.html")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
