@@ -21,7 +21,6 @@ matrix = RGBMatrix(options=options)
 # --- Paths ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 themes_dir = os.path.join(BASE_DIR, "themes")
-assets_dir = os.path.join(BASE_DIR, "assets")
 settings_file = os.path.join(BASE_DIR, "settings.json")
 
 # --- Shared settings (global var updated by the watchdog) ---
@@ -35,13 +34,12 @@ def load_settings():
         print("[WARN] settings.json not found. Using defaults.")
         return {
             "mode": "all",
-            "theme": None,
+            "theme": "all",  # default theme
             "duration": 2,
             "sleep_enable": False,
             "sleep_range": {"start": "00:00", "end": "09:00"},
-            "static_image": None
+            "static_image": "logo.png"
         }
-
 # --- Watchdog handler ---
 class SettingsChangeHandler(FileSystemEventHandler):
     def on_modified(self, event):
@@ -131,7 +129,7 @@ if __name__ == "__main__":
                         show_image(img, duration)
                 else:
                     print("[MODE] Sleep fallback → logo")
-                    show_image(os.path.join(assets_dir, "logo.png"), duration)
+                    show_image(os.path.join(themes_dir, "all", "logo.png"), duration)
                 continue
 
             # --- Static Image ---
