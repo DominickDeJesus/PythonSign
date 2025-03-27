@@ -59,5 +59,9 @@ def get_themes():
     themes = [d for d in os.listdir(themes_dir) if os.path.isdir(os.path.join(themes_dir, d))]
     return jsonify({"themes": themes})
 
+@app.route('/')
+def index():
+    return send_from_directory(BASE_DIR, "index.html")
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
