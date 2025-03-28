@@ -142,7 +142,11 @@ if __name__ == "__main__":
                     was_sleeping = True
 
                 sleep_images = get_theme_images("sleep")
-                if sleep_images:
+                if not sleep_images:
+                    print("[MODE] Sleep fallback → logo")
+                    sleep_images = [os.path.join(themes_dir, "all", "logo.png")]
+
+                while is_sleep_time(current_settings.get("sleep_enable"), current_settings.get("sleep_range", {})):
                     random.shuffle(sleep_images)
                     for img in sleep_images:
                         show_image(img, duration, allow_interrupt=False)
@@ -150,9 +154,9 @@ if __name__ == "__main__":
                             print("[MODE] Exiting Sleep Mode")
                             was_sleeping = False
                             break
-                else:
-                    print("[MODE] Sleep fallback → logo")
-                    show_image(os.path.join(themes_dir, "all", "logo.png"), duration, allow_interrupt=False)
+                    else:
+                        continue
+                    break
                 continue
 
             was_sleeping = False
