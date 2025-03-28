@@ -9,9 +9,14 @@
 		/>
 		<link rel="stylesheet" href="/static/style.css" />
 	</head>
-	<body class="bg-light py-4">
+	<body class="bg-light py-4 dark-mode">
 		<div class="container">
-			<h1 class="mb-4">LED Matrix Control</h1>
+			<div class="d-flex justify-content-between align-items-center mb-4">
+				<h1 class="mb-0">LED Matrix Control</h1>
+				<button class="btn btn-sm btn-outline-light" onclick="toggleDarkMode()">
+					🌓 Toggle Dark Mode
+				</button>
+			</div>
 
 			<div id="alertBox" class="alert alert-success d-none" role="alert">
 				Settings saved successfully!
@@ -100,6 +105,11 @@
 				</div>
 			</div>
 		</div>
+		<script>
+			function toggleDarkMode() {
+				document.body.classList.toggle("dark-mode");
+			}
+		</script>
 		<script src="/static/script.js"></script>
 	</body>
 </html>
