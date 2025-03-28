@@ -1,312 +1,173 @@
-// Enable or disable debug logging
-var DEBUG = true;
+// Toggle logging here
+const DEBUG = true;
+const log = (...args) => {
+	if (DEBUG) console.log(...args);
+};
 
-/**
- * Log messages to console if DEBUG is true.
- */
-function debugLog(...args) {
-	if (DEBUG) {
-		console.log(...args);
-	}
+let selectedStaticImage = null;
+
+async function loadSettings() {
+	const res = await fetch("/get_settings");
+	const settings = await res.json();
+
+	document.getElementById("themeSelect").value = settings.theme || "";
+	document.getElementById("duration").value = settings.duration || 2;
+	document.getElementById("sleepEnable").checked =
+		settings.sleep_enable || false;
+	document.getElementById("sleepStart").value =
+		settings.sleep_range?.start || "00:00";
+	document.getElementById("sleepEnd").value =
+		settings.sleep_range?.end || "09:00";
+
+	selectedStaticImage = settings.static_image || null;
+	loadThemePreviews(settings.theme);
 }
 
-// Track current selected theme and image
-var currentTheme = null;
-var currentImage = null;
+async function saveSettings() {
+	const payload = {
+		theme: document.getElementById("themeSelect").value,
+		duration: parseFloat(document.getElementById("duration").value),
+		sleep_enable: document.getElementById("sleepEnable").checked,
+		sleep_range: {
+			start: document.getElementById("sleepStart").value,
+			end: document.getElementById("sleepEnd").value,
+		},
+		mode: "all",
+		static_image: selectedStaticImage,
+	};
 
-/**
- * Load available themes from the server and populate the theme dropdown.
- */
-function loadThemes() {
-	debugLog("Loading themes from /get_themes");
-	return fetch("/get_themes")
-		.then((response) => {
-			if (!response.ok) throw new Error("Failed to load themes");
-			return response.json();
-		})
-		.then((data) => {
-			const themes = data.themes || [];
-			debugLog("Available themes:", themes);
-			var select = document.getElementById("themeSelect");
-			if (!select) return;
-			select.innerHTML = "";
-			themes.forEach((theme) => {
-				var opt = document.createElement("option");
-				opt.value = theme;
-				opt.textContent = theme;
-				select.appendChild(opt);
-			});
-		})
-		.catch((error) => {
-			console.error("Error loading themes:", error);
-		});
-}
-
-/**
- * Load all images for a given theme and display them as thumbnails.
- * @param {string} theme - The theme name to load images from.
- */
-function loadThemeImages(theme) {
-	debugLog("Loading images for theme:", theme);
-	var container = document.getElementById("imagesContainer");
-	if (!container) {
-		return Promise.resolve(); // No container to display images
-	}
-	// Optional: show a loading indicator
-	container.textContent = "Loading images...";
-	return fetch("/get_theme_images/" + encodeURIComponent(theme))
-		.then((response) => {
-			if (!response.ok)
-				throw new Error("Failed to load images for theme " + theme);
-			return response.json();
-		})
-		.then((images) => {
-			debugLog(`Images for theme "${theme}":`, images);
-			container.innerHTML = ""; // Clear any existing images
-			if (!images || images.length === 0) {
-				container.textContent = "No images available.";
-				return;
-			}
-			// Create an <img> element for each image
-			images.forEach((imageName) => {
-				var imgElem = document.createElement("img");
-				// Assume images are served from a static directory by theme
-				imgElem.src =
-					"/static/themes/" +
-					encodeURIComponent(theme) +
-					"/" +
-					encodeURIComponent(imageName);
-				imgElem.alt = imageName;
-				imgElem.classList.add("img-thumbnail", "theme-image");
-				// Store the image name and theme in data attributes for selection
-				imgElem.setAttribute("data-image", imageName);
-				imgElem.setAttribute("data-theme", theme);
-				container.appendChild(imgElem);
-			});
-		})
-		.catch((error) => {
-			console.error("Error loading images for theme:", error);
-			container.textContent = "Error loading images.";
-		});
-}
-
-/**
- * Highlight the thumbnail corresponding to the given image name.
- * Removes highlight from any previously selected image.
- * @param {string} imageName - The file name of the image to highlight.
- */
-function highlightImage(imageName) {
-	var container = document.getElementById("imagesContainer");
-	if (!container) return;
-	// Remove existing highlight
-	var prev = container.querySelector(".img-thumbnail.selected");
-	if (prev) {
-		prev.classList.remove("selected");
-	}
-	// Add highlight to the new selected image
-	var newImg = null;
-	var thumbnails = container.querySelectorAll(".img-thumbnail[data-image]");
-	for (var img of thumbnails) {
-		if (img.getAttribute("data-image") === imageName) {
-			newImg = img;
-			break;
-		}
-	}
-	if (newImg) {
-		newImg.classList.add("selected");
-	}
-}
-
-/**
- * Load current settings from the server and initialize the UI (select theme and highlight image).
- */
-function loadSettings() {
-	debugLog("Loading settings from /get_settings");
-	return fetch("/get_settings")
-		.then((response) => {
-			if (!response.ok) throw new Error("Failed to load settings");
-			return response.json();
-		})
-		.then((settings) => {
-			debugLog("Current settings:", settings);
-			if (!settings) return;
-			// If a theme is specified in settings, select it and load its images
-			if (settings.theme) {
-				currentTheme = settings.theme;
-				var themeSelect = document.getElementById("themeSelect");
-				if (themeSelect) {
-					themeSelect.value = settings.theme;
-				}
-				// Load images for the current theme, then highlight the current image
-				return loadThemeImages(settings.theme).then(() => {
-					if (settings.image) {
-						currentImage = settings.image;
-						highlightImage(settings.image);
-					}
-				});
-			}
-		})
-		.catch((error) => {
-			console.error("Error loading settings:", error);
-		});
-}
-
-/**
- * Save the current settings (selected theme and image) to the server.
- */
-function saveSettings() {
-	debugLog("Saving settings to /set_settings");
-	var data = {};
-	if (currentTheme) data.theme = currentTheme;
-	if (currentImage) data.image = currentImage;
-	fetch("/set_settings", {
+	await fetch("/set_settings", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(data),
-	})
-		.then((response) => {
-			if (!response.ok) throw new Error("Settings save failed");
-			return response.json();
-		})
-		.then((result) => {
-			debugLog("Settings saved successfully.", result);
-		})
-		.catch((error) => {
-			console.error("Error saving settings:", error);
-		});
+		body: JSON.stringify(payload),
+	});
+
+	const alertBox = document.getElementById("alertBox");
+	alertBox.classList.remove("d-none");
+	setTimeout(() => alertBox.classList.add("d-none"), 3000);
 }
 
-/**
- * Upload a new image to the server, either adding to an existing theme or creating a new theme.
- * Expects an input with id="imageUploadInput" for the file,
- * a select with id="themeSelect" for existing theme,
- * and an optional text input with id="newThemeInput" for a new theme name.
- */
-function uploadImage() {
-	var fileInput = document.getElementById("imageUploadInput");
-	if (!fileInput || !fileInput.files.length) {
-		console.error("No image file selected for upload");
+// 🔥 FIXED: Now safely pulls .themes from response object
+async function loadThemes() {
+	const res = await fetch("/get_themes");
+	const data = await res.json();
+
+	const themes = Array.isArray(data.themes) ? data.themes : [];
+
+	const mainThemeSelect = document.getElementById("themeSelect");
+	const uploadThemeSelect = document.getElementById("themeSelectUpload");
+
+	mainThemeSelect.innerHTML = `<option value="">-- Select a Theme --</option>`;
+	themes.forEach((theme) => {
+		const option = document.createElement("option");
+		option.value = theme;
+		option.text = theme;
+		mainThemeSelect.appendChild(option);
+	});
+
+	uploadThemeSelect.innerHTML = `<option value="">-- Select a Theme --</option>`;
+	themes.forEach((theme) => {
+		const option = document.createElement("option");
+		option.value = theme;
+		option.text = theme;
+		uploadThemeSelect.appendChild(option);
+	});
+
+	const createNewOption = document.createElement("option");
+	createNewOption.value = "__new__";
+	createNewOption.text = "➕ Create New Theme...";
+	uploadThemeSelect.appendChild(createNewOption);
+}
+
+function toggleNewThemeInput() {
+	const themeSelect = document.getElementById("themeSelectUpload");
+	const newThemeWrapper = document.getElementById("newThemeWrapper");
+
+	if (themeSelect.value === "__new__") {
+		newThemeWrapper.classList.remove("d-none");
+	} else {
+		newThemeWrapper.classList.add("d-none");
+		document.getElementById("newThemeName").value = "";
+	}
+}
+
+async function uploadImage() {
+	const fileInput = document.getElementById("fileInput");
+	const themeSelect = document.getElementById("themeSelectUpload");
+	const newThemeInput = document.getElementById("newThemeName");
+	const formData = new FormData();
+
+	if (!fileInput.files[0]) {
+		alert("Please choose an image.");
 		return;
 	}
-	var file = fileInput.files[0];
-	// Determine target theme: use new theme name if provided, otherwise selected theme
-	var newThemeInput = document.getElementById("newThemeInput");
-	var newThemeName = newThemeInput ? newThemeInput.value.trim() : "";
-	var themeSelect = document.getElementById("themeSelect");
-	var existingTheme = themeSelect ? themeSelect.value : "";
-	var targetTheme = newThemeName || existingTheme;
-	if (!targetTheme) {
-		console.error("No theme specified for image upload");
+
+	formData.append("file", fileInput.files[0]);
+
+	if (themeSelect.value === "__new__") {
+		const newTheme = newThemeInput.value.trim();
+		if (!newTheme) {
+			alert("Please enter a name for the new theme.");
+			return;
+		}
+		formData.append("new_theme", newTheme);
+	} else if (themeSelect.value) {
+		formData.append("theme", themeSelect.value);
+	} else {
+		alert("Please select a theme or create a new one.");
 		return;
 	}
-	debugLog(
-		"Uploading image to theme:",
-		targetTheme,
-		newThemeName ? "(new theme)" : "(existing theme)"
-	);
-	// Prepare form data for upload
-	var formData = new FormData();
-	formData.append("image", file);
-	formData.append("theme", targetTheme);
-	if (newThemeName) {
-		// Indicate this is a new theme
-		formData.append("new_theme", newThemeName);
-	}
-	fetch("/upload_image", {
+
+	const res = await fetch("/upload_image", {
 		method: "POST",
 		body: formData,
-	})
-		.then((response) => {
-			if (!response.ok) throw new Error("Image upload failed");
-			return response.json();
-		})
-		.then((result) => {
-			debugLog("Upload successful:", result);
-			// If a new theme was created, refresh the theme list and select the new theme
-			if (newThemeName) {
-				loadThemes().then(() => {
-					if (themeSelect) {
-						themeSelect.value = targetTheme;
-					}
-					currentTheme = targetTheme;
-					currentImage = null;
-					// Load images for the new theme (should include the uploaded image)
-					loadThemeImages(targetTheme);
-				});
-			} else {
-				// If added to an existing theme, reload images for that theme
-				currentTheme = targetTheme;
-				currentImage = null;
-				loadThemeImages(targetTheme);
-			}
-			// Clear the file input and new theme field
-			if (newThemeInput) newThemeInput.value = "";
-			fileInput.value = "";
-		})
-		.catch((error) => {
-			console.error("Error uploading image:", error);
-		});
+	});
+
+	const data = await res.json();
+	alert("Uploaded to theme: " + data.theme);
+	await loadThemes();
 }
 
-// Set up event handlers after the DOM is fully loaded
-document.addEventListener("DOMContentLoaded", function () {
-	debugLog("Initializing LED sign UI script");
-	// Handle theme selection changes
-	var themeSelect = document.getElementById("themeSelect");
-	if (themeSelect) {
-		themeSelect.addEventListener("change", function () {
-			var theme = themeSelect.value;
-			debugLog("Theme changed by user to:", theme);
-			if (theme) {
-				currentTheme = theme;
-				currentImage = null;
-				loadThemeImages(theme);
-			}
-		});
-	}
-	// Handle thumbnail image click (delegation)
-	var imagesContainer = document.getElementById("imagesContainer");
-	if (imagesContainer) {
-		imagesContainer.addEventListener("click", function (e) {
-			if (e.target && e.target.classList.contains("theme-image")) {
-				var imgElem = e.target;
-				var imageName = imgElem.getAttribute("data-image");
-				var themeName = imgElem.getAttribute("data-theme");
-				if (themeName) currentTheme = themeName;
-				if (imageName) {
-					currentImage = imageName;
-					debugLog("Image selected:", imageName, "from theme:", themeName);
-					highlightImage(imageName);
-				}
-			}
-		});
-	}
-	// Handle save settings button
-	var saveBtn = document.getElementById("saveButton");
-	if (saveBtn) {
-		saveBtn.addEventListener("click", function (e) {
-			e.preventDefault();
-			saveSettings();
-		});
-	}
-	// Handle image upload form submission or button
-	var uploadForm = document.getElementById("uploadForm");
-	if (uploadForm) {
-		uploadForm.addEventListener("submit", function (e) {
-			e.preventDefault();
-			uploadImage();
-		});
-	}
-	var uploadBtn = document.getElementById("uploadButton");
-	if (uploadBtn) {
-		uploadBtn.addEventListener("click", function (e) {
-			e.preventDefault();
-			uploadImage();
-		});
-	}
-	// Initial load: get themes and settings
-	loadThemes().then(() => {
-		// After themes are loaded, fetch and apply current settings
-		loadSettings();
+async function loadThemePreviews(theme) {
+	const container = document.getElementById("imagePreviewGrid");
+	container.innerHTML = "";
+	selectedStaticImage = null;
+
+	if (!theme) return;
+
+	const res = await fetch(`/get_theme_images/${theme}`);
+	const data = await res.json();
+
+	data.images.forEach((filename) => {
+		const url = `/themes/${theme}/${filename}`;
+
+		const col = document.createElement("div");
+		col.className = "col-3";
+
+		const img = document.createElement("img");
+		img.src = url;
+		img.alt = filename;
+		img.className = "img-thumbnail";
+		img.style.cursor = "pointer";
+
+		if (filename === selectedStaticImage) {
+			img.classList.add("border-primary", "border", "border-3");
+		}
+
+		img.onclick = () => {
+			selectedStaticImage = filename;
+			document.querySelectorAll("#imagePreviewGrid img").forEach((i) => {
+				i.classList.remove("border-primary", "border", "border-3");
+			});
+			img.classList.add("border-primary", "border", "border-3");
+		};
+
+		col.appendChild(img);
+		container.appendChild(col);
 	});
-});
+}
+
+window.onload = async () => {
+	await loadThemes();
+	await loadSettings();
+};
