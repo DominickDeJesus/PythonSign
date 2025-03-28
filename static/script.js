@@ -24,13 +24,12 @@ function loadThemes() {
 			if (!response.ok) throw new Error("Failed to load themes");
 			return response.json();
 		})
-		.then((themes) => {
+		.then((data) => {
+			const themes = data.themes || [];
 			debugLog("Available themes:", themes);
 			var select = document.getElementById("themeSelect");
 			if (!select) return;
-			// Clear existing options
 			select.innerHTML = "";
-			// Populate dropdown with theme names
 			themes.forEach((theme) => {
 				var opt = document.createElement("option");
 				opt.value = theme;
