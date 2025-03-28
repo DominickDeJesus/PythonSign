@@ -137,6 +137,25 @@ async function loadThemePreviews(theme) {
 	const res = await fetch(`/get_theme_images/${theme}`);
 	const data = await res.json();
 
+	const cycleCol = document.createElement("div");
+	cycleCol.className = "col-3";
+	const cycleBox = document.createElement("div");
+	cycleBox.className =
+		"img-thumbnail preview-img d-flex align-items-center justify-content-center text-center bg-secondary text-white";
+	cycleBox.style.cursor = "pointer";
+	cycleBox.textContent = "Cycle Images";
+	cycleBox.onclick = () => {
+		selectedStaticImage = null;
+		document
+			.querySelectorAll("#imagePreviewGrid .img-thumbnail")
+			.forEach((i) => {
+				i.classList.remove("border-primary", "border", "border-3");
+			});
+		cycleBox.classList.add("border-primary", "border", "border-3");
+	};
+	cycleCol.appendChild(cycleBox);
+	container.appendChild(cycleCol);
+
 	data.images.forEach((filename) => {
 		const url = `/themes/${theme}/${filename}`;
 
@@ -146,7 +165,7 @@ async function loadThemePreviews(theme) {
 		const img = document.createElement("img");
 		img.src = url;
 		img.alt = filename;
-		img.className = "img-thumbnail";
+		img.className = "img-thumbnail preview-img";
 		img.style.cursor = "pointer";
 
 		if (filename === selectedStaticImage) {
@@ -155,9 +174,11 @@ async function loadThemePreviews(theme) {
 
 		img.onclick = () => {
 			selectedStaticImage = filename;
-			document.querySelectorAll("#imagePreviewGrid img").forEach((i) => {
-				i.classList.remove("border-primary", "border", "border-3");
-			});
+			document
+				.querySelectorAll("#imagePreviewGrid .img-thumbnail")
+				.forEach((i) => {
+					i.classList.remove("border-primary", "border", "border-3");
+				});
 			img.classList.add("border-primary", "border", "border-3");
 		};
 
