@@ -33,7 +33,6 @@ def load_settings():
     except FileNotFoundError:
         print("[WARN] settings.json not found. Using defaults.")
         return {
-            "mode": "all",
             "theme": "all",  # default theme
             "duration": 2,
             "sleep_enable": False,

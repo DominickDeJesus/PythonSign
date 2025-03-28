@@ -1,7 +1,6 @@
 {
-    "mode": "logo", 
     "theme": null, 
     "duration": 2, 
-    "sleep_enable": true,
+    "sleep_enable": false,
     "sleep_range": {"start": "00:00", "end": "09:00"}
 }
