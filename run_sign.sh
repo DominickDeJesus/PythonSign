@@ -1,7 +1,10 @@
 #!/bin/bash
-#cd /home/pi/sign
-#tmux new-session -d -s sign
-#tmux send-key 'sudo python /home/pi/sign/led_display.py' C-m
-tmux new -d -s sign-controller 'python /home/pi/sign/led_display.py'
-tmux new -d -s sign-server 'python /home/pi/sign/server.py'
-#cd ~
+
+# Wait for system to fully boot
+sleep 2
+
+# Start LED controller in tmux
+tmux new-session -d -s controller 'python3 /home/pi/sign/led_display.py'
+
+# Start Flask server in tmux
+tmux new-session -d -s server 'python3 /home/pi/sign/server.py'
