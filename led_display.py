@@ -86,7 +86,7 @@ def get_theme_images(theme):
         if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))
     ]
 
-# --- Display image with interruptible duration ---
+# --- Display image with interruptible duration and sleep check ---
 def show_image(image_path, duration):
     try:
         image = Image.open(image_path)
@@ -102,6 +102,9 @@ def show_image(image_path, duration):
                 if current_settings != active_settings:
                     print("[INFO] Settings changed mid-static image. Interrupting.")
                     return
+                if is_sleep_time(current_settings.get("sleep_enable"), current_settings.get("sleep_range", {})):
+                    print("[INFO] Sleep mode activated mid-static image. Interrupting.")
+                    return
                 time.sleep(0.1)
         else:
             start_time = time.time()
@@ -114,6 +117,9 @@ def show_image(image_path, duration):
                         break
                     if current_settings != active_settings:
                         print("[INFO] Settings changed mid-GIF. Interrupting.")
+                        return
+                    if is_sleep_time(current_settings.get("sleep_enable"), current_settings.get("sleep_range", {})):
+                        print("[INFO] Sleep mode activated mid-GIF. Interrupting.")
                         return
     except Exception as e:
         print(f"[ERROR] Failed to show image {image_path}: {e}")
@@ -139,7 +145,8 @@ if __name__ == "__main__":
                     random.shuffle(sleep_images)
                     for img in sleep_images:
                         show_image(img, duration)
-                        if current_settings.get("theme") != theme:
+                        if not is_sleep_time(current_settings.get("sleep_enable"), current_settings.get("sleep_range", {})):
+                            print("[INTERRUPT] Sleep mode turned off. Breaking early.")
                             break
                 else:
                     print("[MODE] Sleep fallback → logo")
