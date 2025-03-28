@@ -93,15 +93,24 @@ def show_image(image_path, duration):
         image.thumbnail((matrix.width, matrix.height), Image.ANTIALIAS)
 
         frame_duration = image.info.get("duration", 0) / 1000.0
-        if frame_duration == 0:
+
+        if frame_duration == 0 or not getattr(image, "is_animated", False):
             matrix.SetImage(image.convert("RGB"))
             time.sleep(duration)
         else:
-            for frame in ImageSequence.Iterator(image):
-                matrix.SetImage(frame.convert("RGB"))
-                time.sleep(frame_duration if frame_duration > 0 else 0.1)
+            start_time = time.time()
+            frames = [frame.copy() for frame in ImageSequence.Iterator(image)]
+            frame_count = len(frames)
+
+            while time.time() - start_time < duration:
+                for frame in frames:
+                    matrix.SetImage(frame.convert("RGB"))
+                    time.sleep(frame_duration if frame_duration > 0 else 0.1)
+                    if time.time() - start_time >= duration:
+                        break
     except Exception as e:
         print(f"[ERROR] Failed to show image {image_path}: {e}")
+
 
 # --- Main ---
 if __name__ == "__main__":
