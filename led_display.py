@@ -30,15 +30,16 @@ def load_settings():
     try:
         with open(settings_file, "r") as f:
             return json.load(f)
-    except FileNotFoundError:
-        print("[WARN] settings.json not found. Using defaults.")
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"[WARN] Failed to load settings.json: {e}")
         return {
-            "theme": "all",  # default theme
+            "theme": "all",
             "duration": 2,
             "sleep_enable": False,
             "sleep_range": {"start": "00:00", "end": "09:00"},
             "static_image": "logo.png"
         }
+
 # --- Watchdog handler ---
 class SettingsChangeHandler(FileSystemEventHandler):
     def on_modified(self, event):
