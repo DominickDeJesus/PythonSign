@@ -1,6 +1,11 @@
 {
-    "theme": null, 
-    "duration": 2, 
-    "sleep_enable": false,
-    "sleep_range": {"start": "00:00", "end": "09:00"}
+    "theme": "all",
+    "duration": 120,
+    "sleep_enable": true,
+    "sleep_range": {
+        "start": "21:00",
+        "end": "09:00"
+    },
+    "mode": "all",
+    "static_image": null
 }
