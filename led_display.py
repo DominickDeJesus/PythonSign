@@ -86,8 +86,8 @@ def get_theme_images(theme):
         if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))
     ]
 
-# --- Display image with interruptible duration and sleep check ---
-def show_image(image_path, duration):
+# --- Display image safely ---
+def show_image(image_path, duration, allow_interrupt=True):
     try:
         image = Image.open(image_path)
         image.thumbnail((matrix.width, matrix.height), Image.ANTIALIAS)
@@ -99,11 +99,8 @@ def show_image(image_path, duration):
             matrix.SetImage(image.convert("RGB"))
             start = time.time()
             while time.time() - start < duration:
-                if current_settings != active_settings:
+                if allow_interrupt and current_settings != active_settings:
                     print("[INFO] Settings changed mid-static image. Interrupting.")
-                    return
-                if is_sleep_time(current_settings.get("sleep_enable"), current_settings.get("sleep_range", {})):
-                    print("[INFO] Sleep mode activated mid-static image. Interrupting.")
                     return
                 time.sleep(0.1)
         else:
@@ -115,11 +112,8 @@ def show_image(image_path, duration):
                     time.sleep(frame_duration if frame_duration > 0 else 0.1)
                     if time.time() - start_time >= duration:
                         break
-                    if current_settings != active_settings:
+                    if allow_interrupt and current_settings != active_settings:
                         print("[INFO] Settings changed mid-GIF. Interrupting.")
-                        return
-                    if is_sleep_time(current_settings.get("sleep_enable"), current_settings.get("sleep_range", {})):
-                        print("[INFO] Sleep mode activated mid-GIF. Interrupting.")
                         return
     except Exception as e:
         print(f"[ERROR] Failed to show image {image_path}: {e}")
@@ -130,6 +124,8 @@ if __name__ == "__main__":
     current_settings = load_settings()
     observer = start_settings_watcher()
 
+    was_sleeping = False
+
     try:
         while True:
             theme = current_settings.get("theme", "all")
@@ -138,20 +134,28 @@ if __name__ == "__main__":
             sleep_range = current_settings.get("sleep_range", {"start": "00:00", "end": "09:00"})
             static_image = current_settings.get("static_image")
 
-            if is_sleep_time(sleep_enabled, sleep_range):
+            sleeping = is_sleep_time(sleep_enabled, sleep_range)
+
+            if sleeping:
+                if not was_sleeping:
+                    print("[MODE] Entering Sleep Mode")
+                    was_sleeping = True
+
                 sleep_images = get_theme_images("sleep")
                 if sleep_images:
-                    print("[MODE] Sleep Mode")
                     random.shuffle(sleep_images)
                     for img in sleep_images:
-                        show_image(img, duration)
+                        show_image(img, duration, allow_interrupt=False)
                         if not is_sleep_time(current_settings.get("sleep_enable"), current_settings.get("sleep_range", {})):
-                            print("[INTERRUPT] Sleep mode turned off. Breaking early.")
+                            print("[MODE] Exiting Sleep Mode")
+                            was_sleeping = False
                             break
                 else:
                     print("[MODE] Sleep fallback → logo")
-                    show_image(os.path.join(themes_dir, "all", "logo.png"), duration)
+                    show_image(os.path.join(themes_dir, "all", "logo.png"), duration, allow_interrupt=False)
                 continue
+
+            was_sleeping = False
 
             if static_image and theme:
                 image_path = os.path.join(themes_dir, theme, static_image)
