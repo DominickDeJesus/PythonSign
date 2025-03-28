@@ -47,7 +47,6 @@ async function saveSettings() {
 	setTimeout(() => alertBox.classList.add("d-none"), 3000);
 }
 
-// 🔥 FIXED: Now safely pulls .themes from response object
 async function loadThemes() {
 	const res = await fetch("/get_themes");
 	const data = await res.json();
