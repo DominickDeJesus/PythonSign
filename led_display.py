@@ -44,6 +44,7 @@ def load_settings():
 class SettingsChangeHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if event.src_path.endswith("settings.json"):
+            time.sleep(0.1)  # Give time for the file to finish saving
             global current_settings
             current_settings = load_settings()
             print(f"[WATCHDOG] settings.json reloaded at {datetime.datetime.now()}")
