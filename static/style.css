@@ -1,12 +1,46 @@
 /* Custom styles for LED sign web UI */
+
+/* Enable dark mode styles when .dark-mode is on the <body> */
+body.dark-mode {
+    background-color: #121212;
+    color: #ffffff;
+}
+
+.dark-mode .card {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border-color: #333;
+}
+
+.dark-mode .form-control,
+.dark-mode .form-select {
+    background-color: #2a2a2a;
+    color: #ffffff;
+    border-color: #444;
+}
+
+.dark-mode .form-check-label,
+.dark-mode label {
+    color: #ffffff;
+}
+
+.dark-mode .alert {
+    background-color: #333;
+    color: #ffffff;
+    border-color: #444;
+}
+
+/* Base thumbnail spacing */
 .img-thumbnail {
     margin: 0.1rem;
 }
-/* Highlight the selected image with a thicker blue border */
+
+/* Highlight selected thumbnail */
 .img-thumbnail.selected {
     border: 2px solid #007bff;
 }
-/* Uniform size for preview images */
+
+/* Consistent preview image size */
 .preview-img {
     width: 150px;
     height: 150px;
