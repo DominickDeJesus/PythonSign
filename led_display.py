@@ -46,7 +46,7 @@ def load_settings():
 class SettingsChangeHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if event.src_path.endswith("settings.json"):
-            time.sleep(0.1)  # Give file write time to complete
+            time.sleep(0.1)
             global current_settings
             current_settings = load_settings()
             print(f"[WATCHDOG] settings.json reloaded at {datetime.datetime.now()}")
@@ -63,7 +63,6 @@ def start_settings_watcher():
 def is_sleep_time(enabled, sleep_range):
     if not enabled:
         return False
-
     now = datetime.datetime.now().time()
     try:
         start = datetime.datetime.strptime(sleep_range["start"], "%H:%M").time()
@@ -71,7 +70,6 @@ def is_sleep_time(enabled, sleep_range):
     except (KeyError, ValueError):
         print("[ERROR] Invalid sleep_range format")
         return False
-
     if start < end:
         return start <= now < end
     else:
@@ -88,21 +86,23 @@ def get_theme_images(theme):
         if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))
     ]
 
-# --- Display image (with fixed GIF duration looping) ---
+# --- Display image with interruptible duration ---
 def show_image(image_path, duration):
     try:
         image = Image.open(image_path)
         image.thumbnail((matrix.width, matrix.height), Image.ANTIALIAS)
 
         frame_duration = image.info.get("duration", 0) / 1000.0
+        active_settings = current_settings.copy()
 
         if frame_duration == 0 or not getattr(image, "is_animated", False):
             matrix.SetImage(image.convert("RGB"))
             start = time.time()
             while time.time() - start < duration:
+                if current_settings != active_settings:
+                    print("[INFO] Settings changed mid-static image. Interrupting.")
+                    return
                 time.sleep(0.1)
-                if settings_changed():  # optional feature
-                    break
         else:
             start_time = time.time()
             frames = [frame.copy() for frame in ImageSequence.Iterator(image)]
@@ -112,6 +112,9 @@ def show_image(image_path, duration):
                     time.sleep(frame_duration if frame_duration > 0 else 0.1)
                     if time.time() - start_time >= duration:
                         break
+                    if current_settings != active_settings:
+                        print("[INFO] Settings changed mid-GIF. Interrupting.")
+                        return
     except Exception as e:
         print(f"[ERROR] Failed to show image {image_path}: {e}")
 
@@ -119,7 +122,6 @@ def show_image(image_path, duration):
 if __name__ == "__main__":
     print("🟢 LED Controller started with Watchdog")
     current_settings = load_settings()
-
     observer = start_settings_watcher()
 
     try:
@@ -130,7 +132,6 @@ if __name__ == "__main__":
             sleep_range = current_settings.get("sleep_range", {"start": "00:00", "end": "09:00"})
             static_image = current_settings.get("static_image")
 
-            # --- Sleep Mode ---
             if is_sleep_time(sleep_enabled, sleep_range):
                 sleep_images = get_theme_images("sleep")
                 if sleep_images:
@@ -138,12 +139,13 @@ if __name__ == "__main__":
                     random.shuffle(sleep_images)
                     for img in sleep_images:
                         show_image(img, duration)
+                        if current_settings.get("theme") != theme:
+                            break
                 else:
                     print("[MODE] Sleep fallback → logo")
                     show_image(os.path.join(themes_dir, "all", "logo.png"), duration)
                 continue
 
-            # --- Static Image ---
             if static_image and theme:
                 image_path = os.path.join(themes_dir, theme, static_image)
                 if os.path.exists(image_path):
@@ -151,7 +153,6 @@ if __name__ == "__main__":
                     show_image(image_path, duration)
                     continue
 
-            # --- Theme Cycle ---
             if theme:
                 images = get_theme_images(theme)
                 if images:
@@ -159,9 +160,10 @@ if __name__ == "__main__":
                     random.shuffle(images)
                     for img in images:
                         show_image(img, duration)
+                        if current_settings.get("theme") != theme:
+                            break
                     continue
 
-            # --- Default fallback ---
             print("[MODE] Default → logo")
             show_image(os.path.join(themes_dir, "all", "logo.png"), duration)
 
