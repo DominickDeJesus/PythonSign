@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
             # --- Default fallback ---
             print("[MODE] Default → logo")
-            show_image(os.path.join(assets_dir, "logo.png"), duration)
+            show_image(os.path.join(themes_dir, "all", "logo.png"), duration)
 
     except KeyboardInterrupt:
         print("\n🛑 Shutting down LED controller")
