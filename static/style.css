@@ -1,0 +1,10 @@
+/* Custom styles for LED sign web UI */
+.img-thumbnail {
+    max-height: 100px;
+    max-width: 100px;
+    margin: 0.25rem;
+}
+/* Highlight the selected image with a thicker blue border */
+.img-thumbnail.selected {
+    border: 2px solid #007bff;
+}

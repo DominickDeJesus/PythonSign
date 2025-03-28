@@ -98,6 +98,14 @@ def upload_image():
     print(f"[UPLOAD] File uploaded to theme '{theme}': {file.filename}")
     return jsonify({"status": "success", "filename": file.filename, "theme": theme})
 
+@app.route('/')
+def index():
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), 'index.html')
+
+@app.route('/static/<path:filename>')
+def serve_static_file(filename):
+    return send_from_directory(os.path.join(BASE_DIR, 'static'), filename)
+
 # ------------------------------
 # Launch the server
 # ------------------------------
