@@ -98,7 +98,11 @@ def show_image(image_path, duration):
 
         if frame_duration == 0 or not getattr(image, "is_animated", False):
             matrix.SetImage(image.convert("RGB"))
-            time.sleep(duration)
+            start = time.time()
+            while time.time() - start < duration:
+                time.sleep(0.1)
+                if settings_changed():  # optional feature
+                    break
         else:
             start_time = time.time()
             frames = [frame.copy() for frame in ImageSequence.Iterator(image)]
