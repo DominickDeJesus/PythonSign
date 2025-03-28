@@ -23,9 +23,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 themes_dir = os.path.join(BASE_DIR, "themes")
 settings_file = os.path.join(BASE_DIR, "settings.json")
 
-# --- Shared settings (global var updated by the watchdog) ---
+# --- Shared settings ---
 current_settings = {}
 
+# --- Load settings safely ---
 def load_settings():
     try:
         with open(settings_file, "r") as f:
@@ -33,6 +34,7 @@ def load_settings():
     except (FileNotFoundError, json.JSONDecodeError) as e:
         print(f"[WARN] Failed to load settings.json: {e}")
         return {
+            "mode": "all",
             "theme": "all",
             "duration": 2,
             "sleep_enable": False,
@@ -44,7 +46,7 @@ def load_settings():
 class SettingsChangeHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if event.src_path.endswith("settings.json"):
-            time.sleep(0.1)  # Give time for the file to finish saving
+            time.sleep(0.1)  # Give file write time to complete
             global current_settings
             current_settings = load_settings()
             print(f"[WATCHDOG] settings.json reloaded at {datetime.datetime.now()}")
@@ -86,7 +88,7 @@ def get_theme_images(theme):
         if f.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))
     ]
 
-# --- Display image ---
+# --- Display image (with fixed GIF duration looping) ---
 def show_image(image_path, duration):
     try:
         image = Image.open(image_path)
@@ -100,8 +102,6 @@ def show_image(image_path, duration):
         else:
             start_time = time.time()
             frames = [frame.copy() for frame in ImageSequence.Iterator(image)]
-            frame_count = len(frames)
-
             while time.time() - start_time < duration:
                 for frame in frames:
                     matrix.SetImage(frame.convert("RGB"))
@@ -111,8 +111,7 @@ def show_image(image_path, duration):
     except Exception as e:
         print(f"[ERROR] Failed to show image {image_path}: {e}")
 
-
-# --- Main ---
+# --- Main loop ---
 if __name__ == "__main__":
     print("🟢 LED Controller started with Watchdog")
     current_settings = load_settings()
@@ -121,13 +120,11 @@ if __name__ == "__main__":
 
     try:
         while True:
-            settings = current_settings  # Read from global shared settings
-
-            theme = settings.get("theme")
-            duration = settings.get("duration", 2)
-            sleep_enabled = settings.get("sleep_enable", False)
-            sleep_range = settings.get("sleep_range", {"start": "00:00", "end": "09:00"})
-            static_image = settings.get("static_image")
+            theme = current_settings.get("theme", "all")
+            duration = current_settings.get("duration", 2)
+            sleep_enabled = current_settings.get("sleep_enable", False)
+            sleep_range = current_settings.get("sleep_range", {"start": "00:00", "end": "09:00"})
+            static_image = current_settings.get("static_image")
 
             # --- Sleep Mode ---
             if is_sleep_time(sleep_enabled, sleep_range):
